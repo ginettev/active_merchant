@@ -2,7 +2,7 @@ module ActiveMerchant #:nodoc:
   module Billing #:nodoc:
     class PaystationGateway < Gateway
       
-      URL = "https://www.paystation.co.nz/direct/paystation.dll"
+      self.live_url = self.test_url = "https://www.paystation.co.nz/direct/paystation.dll"
       
       # an "error code" of "0" means "No error - transaction successful"
       SUCCESSFUL_RESPONSE_CODE = '0'
@@ -107,7 +107,7 @@ module ActiveMerchant #:nodoc:
         def add_credit_card(post, credit_card)     
           
           post[:cn] = credit_card.number
-          post[:ct] = credit_card.type
+          post[:ct] = credit_card.brand
           post[:ex] = format_date(credit_card.month, credit_card.year)
           post[:cc] = credit_card.verification_value if credit_card.verification_value?
           
@@ -165,7 +165,7 @@ module ActiveMerchant #:nodoc:
           pstn_prefix_params = post.collect { |key, value| "pstn_#{key}=#{CGI.escape(value.to_s)}" }.join("&")
           
           # need include paystation param as "initiator flag for payment engine"
-          data     = ssl_post(URL, "#{pstn_prefix_params}&paystation=_empty")
+          data     = ssl_post(self.live_url, "#{pstn_prefix_params}&paystation=_empty")
           response = parse(data)
           message  = message_from(response)
           

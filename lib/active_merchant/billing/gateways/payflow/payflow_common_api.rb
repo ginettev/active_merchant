@@ -13,6 +13,9 @@ module ActiveMerchant #:nodoc:
         
         base.class_attribute :timeout
         base.timeout = 60
+
+        base.test_url = 'https://pilot-payflowpro.paypal.com'
+        base.live_url = 'https://payflowpro.paypal.com'
         
         # Enable safe retry of failed connections
         # Payflow is safe to retry because retried transactions use the same
@@ -24,8 +27,6 @@ module ActiveMerchant #:nodoc:
       end
       
       XMLNS = 'http://www.paypal.com/XMLPay'
-      TEST_URL = 'https://pilot-payflowpro.paypal.com'
-      LIVE_URL = 'https://payflowpro.paypal.com'
       
       CARD_MAPPING = {
         :visa => 'Visa',
@@ -111,7 +112,10 @@ module ActiveMerchant #:nodoc:
         
           unless money.nil?
             xml.tag! 'Invoice' do
-              xml.tag! 'TotalAmt', amount(money), 'Currency' => options[:currency] || currency(money)
+              xml.tag!('TotalAmt', amount(money), 'Currency' => options[:currency] || currency(money))
+              xml.tag!('Description', options[:description]) unless options[:description].blank?
+              xml.tag!('Comment', options[:comment]) unless options[:comment].blank?
+              xml.tag!('ExtData', 'Name'=> 'COMMENT2', 'Value'=> options[:comment2]) unless options[:comment2].blank?
             end
           end
         end
@@ -126,6 +130,7 @@ module ActiveMerchant #:nodoc:
           xml.tag! 'EMail', options[:email] unless options[:email].blank?
           xml.tag! 'Phone', address[:phone] unless address[:phone].blank?
           xml.tag! 'CustCode', options[:customer] if !options[:customer].blank? && tag == 'BillTo'
+          xml.tag! 'PONum', options[:po_number] if !options[:po_number].blank? && tag == 'BillTo'
           
           xml.tag! 'Address' do
             xml.tag! 'Street', address[:address1] unless address[:address1].blank?
@@ -193,7 +198,7 @@ module ActiveMerchant #:nodoc:
         request = build_request(request_body, options)
         headers = build_headers(request.size)
         
-    	  response = parse(ssl_post(test? ? TEST_URL : LIVE_URL, request, headers))
+    	  response = parse(ssl_post(test? ? self.test_url : self.live_url, request, headers))
 
     	  build_response(response[:result] == "0", response[:message], response,
     	    :test => test?,

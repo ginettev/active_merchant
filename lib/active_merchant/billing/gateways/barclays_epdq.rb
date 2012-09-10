@@ -1,12 +1,12 @@
 module ActiveMerchant #:nodoc:
   module Billing #:nodoc:
     class BarclaysEpdqGateway < Gateway
-      TEST_URL = 'https://secure2.mde.epdq.co.uk:11500'
-      LIVE_URL = 'https://secure2.epdq.co.uk:11500'
+      self.test_url = 'https://secure2.mde.epdq.co.uk:11500'
+      self.live_url = 'https://secure2.epdq.co.uk:11500'
 
-      self.supported_countries = ['UK']
+      self.supported_countries = ['GB']
       self.default_currency = 'GBP'
-      self.supported_cardtypes = [:visa, :master, :maestro, :switch ]
+      self.supported_cardtypes = [:visa, :master, :american_express, :maestro, :switch ]
       self.money_format = :cents
       self.homepage_url = 'http://www.barclaycard.co.uk/business/accepting-payments/epdq-mpi/'
       self.display_name = 'Barclays ePDQ'
@@ -124,7 +124,7 @@ module ActiveMerchant #:nodoc:
       end     
       
       def commit(document)
-        url = (test? ? TEST_URL : LIVE_URL)
+        url = (test? ? self.test_url : self.live_url)
         data = ssl_post(url, document.to_xml)
         parse(data)
       end
@@ -153,10 +153,10 @@ module ActiveMerchant #:nodoc:
           {       
             :success => success,
             :message => message,
-            :authorization => find(doc, "//Transaction/Id"),
+            :transaction_id => find(doc, "//Transaction/Id"),
             :avs_result => find(doc, "//Transaction/AvsRespCode"),
             :cvv_result => find(doc, "//Transaction/Cvv2Resp"),
-            :order_id => find(doc, "//OrderFormDoc/Transaction/Id"),
+            :authorization => find(doc, "//OrderFormDoc/Id"),
             :raw_response => @response
           }
         end

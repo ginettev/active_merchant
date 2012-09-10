@@ -9,8 +9,8 @@ module ActiveMerchant #:nodoc:
       self.homepage_url = 'http://www.concordefsnet.com/'
       self.display_name = 'Efsnet'
      
-      TEST_URL = 'https://testefsnet.concordebiz.com/efsnet.dll'
-      LIVE_URL = 'https://efsnet.concordebiz.com/efsnet.dll'
+      self.test_url = 'https://testefsnet.concordebiz.com/efsnet.dll'
+      self.live_url = 'https://efsnet.concordebiz.com/efsnet.dll'
       
       # login is your Store ID
       # password is your Store Key
@@ -60,7 +60,7 @@ module ActiveMerchant #:nodoc:
       def void(identification, options = {})
         requires!(options, :order_id)
         original_transaction_id, original_transaction_amount = identification.split(";")
-        commit(:void_transaction, {:reference_number => format_reference_number(options[:order_id]), :transaction_ID => original_transaction_id})
+        commit(:void_transaction, {:reference_number => format_reference_number(options[:order_id]), :transaction_id => original_transaction_id})
       end
       
       def voice_authorize(money, authorization_code, creditcard, options = {})
@@ -90,7 +90,7 @@ module ActiveMerchant #:nodoc:
           :reference_number => format_reference_number(options[:order_id]),
           :transaction_amount => amount(money),
           :original_transaction_amount => original_transaction_amount,
-          :original_transaction_ID => original_transaction_id,
+          :original_transaction_id => original_transaction_id,
           :client_ip_address => options[:ip]
         }
       end
@@ -150,7 +150,7 @@ module ActiveMerchant #:nodoc:
 
   
       def commit(action, parameters)  
-        response = parse(ssl_post(test? ? TEST_URL : LIVE_URL, post_data(action, parameters), 'Content-Type' => 'text/xml'))
+        response = parse(ssl_post(test? ? self.test_url : self.live_url, post_data(action, parameters), 'Content-Type' => 'text/xml'))
 
         Response.new(success?(response), message_from(response[:result_message]), response,
           :test => test?,
@@ -191,7 +191,7 @@ module ActiveMerchant #:nodoc:
         transaction = root.add_element(action.to_s.camelize)
 
         actions[action].each do |key|
-          transaction.add_element(key.to_s.camelize).text = parameters[key] unless parameters[key].blank?
+          transaction.add_element(key).text = parameters[key.underscore.to_sym] unless parameters[key.underscore.to_sym].blank?
         end
 
         xml.to_s
@@ -217,18 +217,18 @@ module ActiveMerchant #:nodoc:
         ACTIONS
       end
 
-      CREDIT_CARD_FIELDS =  [:authorization_number, :client_ip_address, :billing_address, :billing_city, :billing_state, :billing_postal_code, :billing_country, :billing_name, :card_verification_value, :expiration_month, :expiration_year, :reference_number, :transaction_amount, :account_number ]
+      CREDIT_CARD_FIELDS =  %w(AuthorizationNumber ClientIpAddress BillingAddress BillingCity BillingState BillingPostalCode BillingCountry BillingName CardVerificationValue ExpirationMonth ExpirationYear ReferenceNumber TransactionAmount AccountNumber )
 
       ACTIONS = {
            :credit_card_authorize		=> CREDIT_CARD_FIELDS,
            :credit_card_charge			=> CREDIT_CARD_FIELDS,
            :credit_card_voice_authorize		=> CREDIT_CARD_FIELDS,
            :credit_card_capture			=> CREDIT_CARD_FIELDS,
-           :credit_card_credit			=> CREDIT_CARD_FIELDS << :original_transaction_amount,
-           :credit_card_refund			=> [:reference_number, :transaction_amount, :original_transaction_amount, :original_transaction_ID, :client_ip_address],
-           :void_transaction			=> [:reference_number, :transaction_ID],
-           :credit_card_settle			=> [:reference_number, :transaction_amount, :original_transaction_amount, :original_transaction_ID, :client_ip_address],
-           :system_check			=> [:system_check],
+           :credit_card_credit			=> CREDIT_CARD_FIELDS + ["OriginalTransactionAmount"],
+           :credit_card_refund			=> %w(ReferenceNumber TransactionAmount OriginalTransactionAmount OriginalTransactionID ClientIpAddress),
+           :void_transaction			=> %w(ReferenceNumber TransactionID),
+           :credit_card_settle			=> %w(ReferenceNumber TransactionAmount OriginalTransactionAmount OriginalTransactionID ClientIpAddress),
+           :system_check			=> %w(SystemCheck),
       }    
     end
   end

@@ -2,8 +2,8 @@ module ActiveMerchant #:nodoc:
 	module Billing #:nodoc:
 		class MerchantESolutionsGateway < Gateway
 
-			TEST_URL = 'https://cert.merchante-solutions.com/mes-api/tridentApi'
-			LIVE_URL = 'https://api.merchante-solutions.com/mes-api/tridentApi'
+			self.test_url = 'https://cert.merchante-solutions.com/mes-api/tridentApi'
+			self.live_url = 'https://api.merchante-solutions.com/mes-api/tridentApi'
       
 			# The countries the gateway supports merchants from as 2 digit ISO country codes
 			self.supported_countries = ['US']
@@ -90,6 +90,7 @@ module ActiveMerchant #:nodoc:
 				if creditcard_or_card_id.is_a?(String)  
 					# using stored card
 					post[:card_id] = creditcard_or_card_id
+					post[:card_exp_date] = options[:expiration_date] if options[:expiration_date]
 				else
 					# card info is provided
 					add_creditcard(post, creditcard_or_card_id, options)
@@ -113,7 +114,7 @@ module ActiveMerchant #:nodoc:
       
 			def commit(action, money, parameters)
 	  
-				url = test? ? TEST_URL : LIVE_URL
+				url = test? ? self.test_url : self.live_url
 				parameters[:transaction_amount]  = amount(money) if money unless action == 'V'
 		
 				response = parse( ssl_post(url, post_data(action,parameters)) )

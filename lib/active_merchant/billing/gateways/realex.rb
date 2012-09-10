@@ -1,4 +1,4 @@
-require 'rexml/document'
+require 'nokogiri'
 require 'digest/sha1'
 
 module ActiveMerchant
@@ -19,8 +19,8 @@ module ActiveMerchant
     # so if validation fails you can not correct and resend using the
     # same order id
     class RealexGateway < Gateway
-      URL = 'https://epage.payandshop.com/epage-remote.cgi'
-
+      self.live_url = self.test_url = 'https://epage.payandshop.com/epage-remote.cgi'
+                  
       CARD_MAPPING = {
         'master'            => 'MC',
         'visa'              => 'VISA',
@@ -81,11 +81,11 @@ module ActiveMerchant
       def void(authorization, options = {})
         request = build_void_request(authorization, options)
         commit(request)
-      end
-
-      private
-      def commit(request)
-        response = parse(ssl_post(URL, request))
+      end     
+      
+      private           
+      def commit(request)        
+        response = parse(ssl_post(self.live_url, request))
 
         Response.new(response[:result] == "00", message_from(response), response,
           :test => response[:message] =~ /\[ test system \]/,
@@ -101,9 +101,8 @@ module ActiveMerchant
       def parse(xml)
         response = {}
 
-        xml = REXML::Document.new(xml)
-        xml.elements.each('//response/*') do |node|
-
+        doc = Nokogiri::XML(xml)
+        doc.xpath('//response/*').each do |node|
           if (node.elements.size == 0)
             response[node.name.downcase.to_sym] = normalize(node.text)
           else
@@ -112,8 +111,7 @@ module ActiveMerchant
               response[name.to_sym] = normalize(childnode.text)
             end
           end
-
-        end unless xml.root.nil?
+        end unless doc.root.nil?
 
         response
       end
@@ -197,7 +195,7 @@ module ActiveMerchant
 
           if shipping_address
             xml.tag! 'address', 'type' => 'shipping' do
-              xml.tag! 'code', shipping_address[:zip]
+              xml.tag! 'code', format_shipping_zip_code(shipping_address[:zip])
               xml.tag! 'country', shipping_address[:country]
             end
           end
@@ -245,6 +243,10 @@ module ActiveMerchant
 
       def avs_input_code(address)
         address.values_at(:zip, :address1).map{ |v| extract_digits(v) }.join('|')
+      end
+
+      def format_shipping_zip_code(zip)
+        zip.to_s.gsub(/\W/, '')
       end
 
       def extract_digits(string)
