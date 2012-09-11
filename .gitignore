@@ -5,3 +5,5 @@ pkg
 # don't want to ship locked version requirements
 Gemfile.lock
 .rbx/
+.idea
+.DS_Store
